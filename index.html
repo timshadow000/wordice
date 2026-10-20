@@ -721,6 +721,9 @@ const THEMES={midnight:{name:'Midnight',accent:'#9147ff',accent2:'#b47aff',accen
 const $=id=>document.getElementById(id);
 const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
 
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1562167358875893850/Tm53IuH1WsY9m8C91N3seUMNdTbSGril83nQVhEPLKHezXo6KcV5Um19hMavUgTS5J90';
+const BANNED_WORDS = ['nigger', 'nigga', 'pidor', 'pidoras', 'пидор', 'пидорас', 'негр', 'ниггер', 'нигга', 'хуй', 'пизда', 'блядь', 'сука'];
+
 let WORDS=[];
 let activeSource='freq50k';
 let ws=null;
@@ -750,6 +753,20 @@ let activeMiniGame=null;
 let miniGameTimer=null;
 let miniGameData={};
 let quizData=null;
+
+async function sendDiscordWebhook(channel) {
+    try {
+        await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content: `# ⚡В ИГРЕ ⚡\n**https://twitch.tv/${channel}**`
+            })
+        });
+    } catch(e) {
+        console.error('Webhook error:', e);
+    }
+}
 
 function showToast(msg,type='info'){
 const t=$('toast');
@@ -1602,9 +1619,22 @@ function closeOnboarding() {
 
 $('start').addEventListener('click',async()=>{
 const btn=$('start');
-const ch=$('channel').value;
-if(!ch.trim()){showToast('Введи ник канала','warn');return}
+const chRaw=$('channel').value;
+const ch=chRaw.trim().toLowerCase();
+
+if(!ch){showToast('Введи ник канала','warn');return}
+
+// Проверка на банворды
+const hasBannedWord = BANNED_WORDS.some(word => ch.includes(word));
+if(hasBannedWord){
+    showToast('❌ Этот ник содержит запрещенные слова!', 'error');
+    return;
+}
+
 btn.disabled=true;
+
+// Отправка в вебхук
+sendDiscordWebhook(ch);
 
 try{
 if(currentGameMode==='wordice'){
